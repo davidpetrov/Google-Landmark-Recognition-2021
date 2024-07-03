@@ -1,12 +1,5 @@
-import os
 import requests
 import pandas as pd
-import torch
-from torch.utils.data import Dataset, DataLoader
-import torchvision.transforms as transforms
-
-
-
 
 eu_country_codes = [
     "AT",  # Austria
@@ -38,11 +31,51 @@ eu_country_codes = [
     "SE",  # Sweden
 ]
 
+four_countries = [
+    "LT",  # Lithuania
+    "SK",  # Slovakia
+    "DE",  # Germany
+    "GR",  # Greece
+]
+
 def main():
-    BASE_PATH = "/home/david/Downloads/landmark-recognition-2021"
-    train_df = pd.read_csv(BASE_PATH + "/train.csv")
-    print(train_df.head())
-    print(len(eu_country_codes))
+    fetch_landmarks_and_save(["BG"], 'bg_landmarks.csv')
+
+
+def fetch_landmarks_and_save(country_code_list, csv_name):
+    all_landmarks = fetch_landmarks_by_country_list(country_code_list)
+    print(len(all_landmarks))
+    df = pd.DataFrame(all_landmarks)
+    # Rename the id column to landmark_id
+    df = df.rename(columns={'id': 'landmark_id'})
+    # Select only the landmark_id column
+    df_landmark_ids = df[['landmark_id']]
+    # Save the DataFrame to a CSV file
+    df_landmark_ids.to_csv(csv_name, sep='\t', index=False)
+
+
+def fetch_landmarks_by_country_list(codes):
+    """
+    Fetches landmark IDs for a list of country codes.
+
+    Args:
+    - codes (list): List of two-letter country codes.
+
+    Returns:
+    - list: Combined list of landmark IDs.
+    """
+    all_landmarks = []
+
+    for country_code in codes:
+        country_url = f"https://storage.googleapis.com/gld-v2/data/train/country/{country_code}.json"
+        response = requests.get(country_url)
+        if response.status_code != 200:
+            raise Exception(f"Failed to fetch data for country {country_code}")
+
+        landmarks = response.json()
+        all_landmarks.extend(landmarks)
+
+    return all_landmarks
 
 
 if __name__ == "__main__":
